@@ -220,7 +220,8 @@ data:
 ## API Data Source
 
 This project uses the Pegadaian Gold Price API:
-- **URL**: `https://sahabat.pegadaian.co.id/gold/prices/chart?interval=3650&isRequest=true`
+
+- **URL**: <https://sahabat.pegadaian.co.id/gold/prices/chart?interval=3650&isRequest=true>
 - **Data**: Historical gold prices for the last 3650 days
 - **Fields**: Selling price (hargaJual), buying price (hargaBeli), timestamp
 

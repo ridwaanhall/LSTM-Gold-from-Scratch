@@ -1,0 +1,158 @@
+# LSTM Gold Price Prediction - Configuration File
+# This file contains all configurable parameters for the system
+
+# Data Configuration
+data:
+  days_to_fetch: 3650              # Number of days of historical data to fetch
+  cache_dir: "data/cache"          # Directory for caching downloaded data
+  max_retries: 3                   # Maximum retries for API calls
+  api_timeout: 30                  # API timeout in seconds
+
+# Model Configuration
+model:
+  sequence_length: 60              # Number of timesteps in input sequences
+  input_size: 10                   # Number of input features (set automatically)
+  hidden_sizes: [64, 32, 16]       # Hidden layer sizes for LSTM layers
+  output_size: 1                   # Number of output values (price prediction)
+  dropout_rate: 0.2                # Dropout rate for regularization
+  activation: "tanh"               # Activation function for LSTM cells
+
+# Training Configuration
+training:
+  epochs: 100                      # Maximum number of training epochs
+  batch_size: 32                   # Batch size for training
+  learning_rate: 0.001             # Initial learning rate
+  validation_split: 0.2            # Fraction of data for validation
+  test_split: 0.1                  # Fraction of data for testing
+  early_stopping_patience: 10     # Epochs to wait before early stopping
+  min_delta: 0.0001               # Minimum improvement for early stopping
+  checkpoint_dir: "models/checkpoints"  # Directory for model checkpoints
+  save_best_only: true             # Save only the best model
+  
+  # Optimizer parameters
+  beta1: 0.9                       # Adam optimizer beta1 parameter
+  beta2: 0.999                     # Adam optimizer beta2 parameter
+  epsilon: 1e-8                    # Adam optimizer epsilon parameter
+  
+  # Gradient clipping
+  gradient_clip_norm: 1.0          # Maximum gradient norm for clipping
+  
+  # Learning rate scheduling
+  lr_schedule:
+    type: "step"                   # Type of LR schedule (step, exponential, cosine)
+    step_size: 20                  # Epochs between LR reductions
+    gamma: 0.8                     # LR reduction factor
+  
+  # Loss function
+  loss_function: "mse"             # Loss function (mse, mae, huber)
+
+# Data Preprocessing Configuration
+preprocessing:
+  # Normalization
+  normalize_features: true         # Whether to normalize input features
+  normalize_targets: true          # Whether to normalize target values
+  normalization_method: "minmax"   # Normalization method (minmax, zscore)
+  
+  # Technical indicators
+  technical_indicators:
+    sma_periods: [10, 20, 50]      # Simple moving average periods
+    ema_periods: [12, 26]          # Exponential moving average periods
+    rsi_period: 14                 # RSI calculation period
+    macd_params: [12, 26, 9]       # MACD parameters (fast, slow, signal)
+    bollinger_period: 20           # Bollinger bands period
+    bollinger_std: 2               # Bollinger bands standard deviation
+  
+  # Feature engineering
+  lag_features: [1, 2, 3, 5, 10]   # Lag periods for price features
+  price_changes: [1, 5, 10, 20]    # Price change periods
+  volatility_window: 20            # Rolling volatility window
+  
+  # Data validation
+  remove_outliers: true            # Whether to remove outliers
+  outlier_threshold: 3.0           # Z-score threshold for outlier removal
+  min_data_points: 100             # Minimum required data points
+
+# Evaluation Configuration
+evaluation:
+  # Metrics to calculate
+  regression_metrics:
+    - "mse"                        # Mean Squared Error
+    - "rmse"                       # Root Mean Squared Error
+    - "mae"                        # Mean Absolute Error
+    - "mape"                       # Mean Absolute Percentage Error
+    - "r2"                         # R-squared
+  
+  trading_metrics:
+    - "sharpe_ratio"               # Sharpe ratio
+    - "max_drawdown"               # Maximum drawdown
+    - "win_rate"                   # Win rate
+    - "profit_factor"              # Profit factor
+  
+  time_series_metrics:
+    - "directional_accuracy"       # Directional accuracy
+    - "uptrend_accuracy"           # Uptrend prediction accuracy
+    - "downtrend_accuracy"         # Downtrend prediction accuracy
+  
+  # Trading simulation parameters
+  trading_cost: 0.001              # Trading cost as fraction
+  initial_capital: 10000           # Initial capital for backtesting
+
+# Visualization Configuration
+visualization:
+  output_dir: "visualizations"     # Directory for saving plots
+  dpi: 300                         # Resolution for saved plots
+  figure_size: [12, 8]             # Default figure size
+  style: "darkgrid"                # Seaborn style
+  color_palette: "husl"            # Color palette for plots
+  
+  # Plot configurations
+  plots:
+    training_history: true         # Create training history plots
+    predictions: true              # Create prediction plots
+    technical_indicators: true     # Create technical indicator plots
+    performance_metrics: true      # Create performance metric plots
+    feature_importance: true       # Create feature importance plots
+    residuals_analysis: true       # Create residuals analysis plots
+    dashboard: true                # Create comprehensive dashboard
+
+# Logging Configuration
+logging:
+  level: "INFO"                    # Logging level (DEBUG, INFO, WARNING, ERROR)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_handler:
+    enabled: true                  # Enable file logging
+    filename: "logs/lstm_gold.log" # Log file path
+    max_bytes: 10485760           # Maximum log file size (10MB)
+    backup_count: 5               # Number of backup log files
+  console_handler:
+    enabled: true                  # Enable console logging
+    level: "INFO"                 # Console logging level
+
+# Advanced Configuration
+advanced:
+  # Reproducibility
+  random_seed: 42                  # Random seed for reproducibility
+  
+  # Performance
+  num_workers: 4                   # Number of worker processes
+  prefetch_factor: 2               # Data prefetch factor
+  
+  # Memory management
+  max_memory_usage: 0.8            # Maximum RAM usage fraction
+  cache_size: 1000                 # Maximum cache entries
+  
+  # Experimental features
+  use_attention: false             # Use attention mechanism (experimental)
+  use_bidirectional: false         # Use bidirectional LSTM (experimental)
+  
+# Model Deployment Configuration (for future use)
+deployment:
+  model_serving:
+    host: "localhost"              # Serving host
+    port: 8000                     # Serving port
+    workers: 2                     # Number of worker processes
+  
+  api_config:
+    rate_limit: 100                # Requests per minute
+    cache_predictions: true        # Cache prediction results
+    cache_ttl: 300                # Cache time-to-live in seconds

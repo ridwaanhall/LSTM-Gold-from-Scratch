@@ -169,3 +169,27 @@ def get_logger(name: str = "LSTM_Gold_Predictor",
         Configured LSTMLogger instance
     """
     return LSTMLogger(name, log_file, log_level)
+
+
+def setup_logger(name: str = "LSTM_Gold_Predictor", 
+                 log_file: Optional[str] = None, 
+                 log_level: str = "INFO") -> LSTMLogger:
+    """
+    Setup and return a configured logger instance.
+    This function provides compatibility with the expected interface.
+    
+    Args:
+        name: Logger name
+        log_file: Path to log file
+        log_level: Logging level
+        
+    Returns:
+        Configured LSTMLogger instance
+    """
+    # Create logs directory if it doesn't exist
+    if log_file is None:
+        os.makedirs("logs", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = f"logs/lstm_gold_predictor_{timestamp}.log"
+    
+    return LSTMLogger(name, log_file, log_level)

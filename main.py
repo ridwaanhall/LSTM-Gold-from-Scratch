@@ -29,7 +29,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from src.utils.config import ConfigManager
 from src.utils.logger import setup_logger
 from src.data.data_fetcher import GoldDataFetcher
-from src.data.preprocessor import DataPreprocessor
+from src.data.preprocessor import GoldDataPreprocessor
 from src.models.lstm_network import LSTMNetwork
 from src.training.optimizer import AdamOptimizer
 from src.training.trainer import LSTMTrainer
@@ -86,7 +86,7 @@ class GoldPredictionPipeline:
                 max_retries=self.config['data']['max_retries']
             )
             
-            self.preprocessor = DataPreprocessor(
+            self.preprocessor = GoldDataPreprocessor(
                 sequence_length=self.config['model']['sequence_length'],
                 validation_split=self.config['training']['validation_split'],
                 test_split=self.config['training']['test_split']

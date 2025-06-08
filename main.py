@@ -387,10 +387,13 @@ class GoldPredictionPipeline:
         try:
             self.logger.info("Creating visualizations...")
             
+            # Convert raw data to DataFrame for visualization
+            df_for_viz = self.preprocessor._convert_to_dataframe(self.raw_data)
+            
             # Prepare technical indicators data
             technical_data = {
-                'price': self.raw_data['price'].values,
-                'volume': self.raw_data.get('volume', np.zeros_like(self.raw_data['price'].values))
+                'price': df_for_viz['selling_price'].values,
+                'volume': df_for_viz.get('volume', np.zeros(len(df_for_viz))).values if 'volume' in df_for_viz.columns else np.zeros(len(df_for_viz))
             }
             
             # Add technical indicators if available
@@ -405,7 +408,7 @@ class GoldPredictionPipeline:
                 'predicted': predicted,
                 'technical_data': technical_data,
                 'config': self.config,
-                'dates': self.raw_data.index[-len(actual):] if hasattr(self.raw_data, 'index') else None
+                'dates': df_for_viz['date'].iloc[-len(actual):] if len(df_for_viz) >= len(actual) else None
             }
             
             # Create dashboard

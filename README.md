@@ -156,7 +156,7 @@ from src.data.data_fetcher import GoldDataFetcher
 from src.data.preprocessor import DataPreprocessor
 from src.models.lstm_network import LSTMNetwork
 from src.training.trainer import LSTMTrainer
-from src.evaluation.metrics import ModelEvaluator
+from src.evaluation.metrics import MetricsCalculator
 from src.visualization.plotter import Visualizer
 
 # Manual pipeline construction
@@ -164,7 +164,7 @@ data_fetcher = GoldDataFetcher()
 preprocessor = DataPreprocessor(sequence_length=60)
 model = LSTMNetwork(input_size=10, hidden_sizes=[64, 32], output_size=1)
 trainer = LSTMTrainer(model)
-evaluator = ModelEvaluator()
+evaluator = MetricsCalculator()
 visualizer = Visualizer()
 
 # Custom training loop

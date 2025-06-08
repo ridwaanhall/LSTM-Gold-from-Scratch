@@ -54,14 +54,24 @@ class GoldDataPreprocessor:
             df = df.sort_values('date').reset_index(drop=True)
             
             # Add technical indicators
-            if self.config.add_technical_indicators:
+            if self.config.get('preprocessing', {}).get('technical_indicators', {}) and hasattr(self.config, 'add_technical_indicators'):
+                if self.config.add_technical_indicators:
+                    df = self._add_technical_indicators(df)
+            elif isinstance(self.config, dict) and self.config.get('preprocessing', {}).get('technical_indicators'):
+                # Handle dict config
                 df = self._add_technical_indicators(df)
             
             # Handle missing values
             df = self._handle_missing_values(df)
             
             # Normalize data
-            if self.config.normalize_data:
+            should_normalize = False
+            if hasattr(self.config, 'normalize_data'):
+                should_normalize = self.config.normalize_data
+            elif isinstance(self.config, dict):
+                should_normalize = self.config.get('preprocessing', {}).get('normalize_features', True)
+            
+            if should_normalize:
                 df_normalized, scaler_info = self._normalize_data(df)
             else:
                 df_normalized = df.copy()
@@ -172,14 +182,16 @@ class GoldDataPreprocessor:
         price = df['selling_price']
         
         # Moving averages
-        df['ma_short'] = price.rolling(window=self.config.moving_average_window).mean()
-        df['ma_long'] = price.rolling(window=self.config.moving_average_window * 2).mean()
+        ma_window = self.config['preprocessing']['technical_indicators']['sma_periods'][0]
+        df['ma_short'] = price.rolling(window=ma_window).mean()
+        df['ma_long'] = price.rolling(window=ma_window * 2).mean()
         
         # Price relative to moving average
         df['price_ma_ratio'] = price / df['ma_short']
         
         # Volatility (rolling standard deviation)
-        df['volatility'] = price.rolling(window=self.config.volatility_window).std()
+        volatility_window = self.config['preprocessing']['volatility_window']
+        df['volatility'] = price.rolling(window=volatility_window).std()
         
         # Rate of change
         df['roc'] = price.pct_change(periods=5)  # 5-day rate of change
@@ -316,7 +328,14 @@ class GoldDataPreprocessor:
         
         # Create sequences
         X, y = [], []
-        sequence_length = self.config.sequence_length
+        
+        # Get sequence length from config
+        if hasattr(self.config, 'sequence_length'):
+            sequence_length = self.config.sequence_length
+        elif isinstance(self.config, dict):
+            sequence_length = self.config.get('model', {}).get('sequence_length', 60)
+        else:
+            sequence_length = 60  # default
         
         for i in range(sequence_length, len(data)):
             # Input sequence
@@ -387,20 +406,40 @@ class GoldDataPreprocessor:
         """
         try:
             # Apply same preprocessing steps
-            if self.config.add_technical_indicators:
+            add_indicators = False
+            if hasattr(self.config, 'add_technical_indicators'):
+                add_indicators = self.config.add_technical_indicators
+            elif isinstance(self.config, dict):
+                add_indicators = bool(self.config.get('preprocessing', {}).get('technical_indicators'))
+            
+            if add_indicators:
                 recent_data = self._add_technical_indicators(recent_data)
             
             recent_data = self._handle_missing_values(recent_data)
             
-            if self.config.normalize_data and scaler_info:
+            should_normalize = False
+            if hasattr(self.config, 'normalize_data'):
+                should_normalize = self.config.normalize_data
+            elif isinstance(self.config, dict):
+                should_normalize = self.config.get('preprocessing', {}).get('normalize_features', True)
+            
+            if should_normalize and scaler_info:
                 recent_data = self._apply_existing_scalers(recent_data, scaler_info)
+            
+            # Get sequence length
+            if hasattr(self.config, 'sequence_length'):
+                sequence_length = self.config.sequence_length
+            elif isinstance(self.config, dict):
+                sequence_length = self.config.get('model', {}).get('sequence_length', 60)
+            else:
+                sequence_length = 60
             
             # Get last sequence
             feature_data = recent_data[self.feature_columns].values
-            if len(feature_data) >= self.config.sequence_length:
-                return feature_data[-self.config.sequence_length:].reshape(1, -1, len(self.feature_columns))
+            if len(feature_data) >= sequence_length:
+                return feature_data[-sequence_length:].reshape(1, -1, len(self.feature_columns))
             else:
-                raise ValueError(f"Not enough data for prediction: {len(feature_data)} < {self.config.sequence_length}")
+                raise ValueError(f"Not enough data for prediction: {len(feature_data)} < {sequence_length}")
                 
         except Exception as e:
             self.logger.error(f"Error preparing prediction input: {str(e)}")

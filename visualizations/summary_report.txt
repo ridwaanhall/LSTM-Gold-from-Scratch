@@ -1,7 +1,7 @@
 LSTM Gold Price Prediction - Summary Report
 ==================================================
 
-Generated on: 2025-06-08 09:36:47
+Generated on: 2025-06-08 10:49:33
 
 Model Configuration:
 --------------------
@@ -16,36 +16,36 @@ advanced: {'random_seed': 42, 'num_workers': 4, 'prefetch_factor': 2, 'max_memor
 
 Performance Metrics:
 --------------------
-mae: 0.2236
-mse: 0.0612
-rmse: 0.2473
-mape: 30.2338
-smape: 36.3491
-mase: 38.0282
-r2: -2.1601
-explained_variance: 0.4236
-max_error: 0.4923
-directional_accuracy: 52.1875
-strategy_return: 27.8965
+mae: 0.1520
+mse: 0.0284
+rmse: 0.1686
+mape: 20.5554
+smape: 23.2088
+mase: 25.8502
+r2: -0.4683
+explained_variance: 0.7256
+max_error: 0.3401
+directional_accuracy: 43.7500
+strategy_return: -14.7551
 buy_hold_return: 68.9223
-excess_return: -41.0258
-sharpe_ratio: 1.0823
-max_drawdown: -24.8162
-win_rate: 40.0000
-profit_factor: 1.2331
-calmar_ratio: 1.1241
-final_portfolio_value: 12789.6533
-theil_u: 26.4118
-residual_autocorr: 0.9702
-forecast_bias: -0.2236
+excess_return: -83.6774
+sharpe_ratio: -0.5379
+max_drawdown: -22.6401
+win_rate: 34.6875
+profit_factor: 0.9012
+calmar_ratio: -0.6517
+final_portfolio_value: 8524.4892
+theil_u: 17.9941
+residual_autocorr: 0.9745
+forecast_bias: -0.1520
 tracking_signal: 1.0000
-mean_residual: 0.2236
-std_residual: 0.1056
+mean_residual: 0.1520
+std_residual: 0.0729
 
 Training Summary:
 --------------------
-Final Training Loss: 0.0118
-Final Validation Loss: 0.0103
-Best Validation Loss: 0.0103
+Final Training Loss: 0.0064
+Final Validation Loss: 0.0052
+Best Validation Loss: 0.0052
 Total Epochs: 10
 

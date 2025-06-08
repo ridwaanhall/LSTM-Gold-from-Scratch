@@ -33,7 +33,7 @@ from src.data.preprocessor import GoldDataPreprocessor
 from src.models.lstm_network import LSTMNetwork
 from src.training.optimizer import AdamOptimizer
 from src.training.trainer import LSTMTrainer
-from src.evaluation.metrics import ModelEvaluator
+from src.evaluation.metrics import MetricsCalculator
 from src.visualization.plotter import Visualizer
 
 
@@ -80,43 +80,84 @@ class GoldPredictionPipeline:
     def setup_components(self) -> None:
         """Initialize all pipeline components."""
         try:
+            # Create config objects for components
+            class DataConfig:
+                def __init__(self, config_dict):
+                    self.api_url = config_dict['data']['api_url']
+                    self.data_dir = config_dict['data']['cache_dir']
+                    self.sequence_length = config_dict['model']['sequence_length']
+                    # Ensure directory exists
+                    os.makedirs(self.data_dir, exist_ok=True)
+            
+            class ModelConfig:
+                def __init__(self, config_dict):
+                    self.input_size = config_dict['model']['input_size']
+                    # For now, use first hidden size and count layers
+                    hidden_sizes = config_dict['model']['hidden_sizes']
+                    self.hidden_size = hidden_sizes[0] if hidden_sizes else 64
+                    self.num_layers = len(hidden_sizes) if hidden_sizes else 1
+                    self.output_size = config_dict['model']['output_size']
+                    self.dropout_rate = config_dict['model']['dropout_rate']
+                    self.gradient_clip = config_dict['training'].get('gradient_clip_norm', 1.0)
+            
+            data_config = DataConfig(self.config)
+            model_config = ModelConfig(self.config)
+            
             # Data components
             self.data_fetcher = GoldDataFetcher(
-                cache_dir=self.config['data']['cache_dir'],
-                max_retries=self.config['data']['max_retries']
+                config=data_config,
+                logger=self.logger
             )
             
             self.preprocessor = GoldDataPreprocessor(
-                sequence_length=self.config['model']['sequence_length'],
-                validation_split=self.config['training']['validation_split'],
-                test_split=self.config['training']['test_split']
+                config=self.config,
+                logger=self.logger
             )
             
-            # Model components
-            self.model = LSTMNetwork(
-                input_size=self.config['model']['input_size'],
-                hidden_sizes=self.config['model']['hidden_sizes'],
-                output_size=self.config['model']['output_size'],
-                dropout_rate=self.config['model']['dropout_rate']
-            )
+            # Create a combined config for trainer
+            class TrainerConfig:
+                def __init__(self, config_dict, model_config):
+                    # Copy model config attributes
+                    for attr in ['input_size', 'hidden_size', 'num_layers', 'output_size', 'dropout_rate', 'gradient_clip']:
+                        setattr(self, attr, getattr(model_config, attr))
+                    
+                    # Add trainer-specific config
+                    self.epochs = config_dict['training']['epochs']
+                    self.batch_size = config_dict['training']['batch_size']
+                    self.loss_function = config_dict['training']['loss_function']
+                    self.patience = config_dict['training']['early_stopping_patience']
+                    self.min_delta = config_dict['training']['min_delta']
+                    self.checkpoint_dir = config_dict['training']['checkpoint_dir']
+                    self.save_best_only = config_dict['training']['save_best_only']
+                    
+                    # Add missing trainer attributes
+                    self.save_model = config_dict['training'].get('save_best_only', True)
+                    self.save_frequency = config_dict['training'].get('save_frequency', 10)
+                    
+                    # Add optimizer parameters
+                    self.learning_rate = config_dict['training']['learning_rate']
+                    self.beta1 = config_dict['training']['beta1']
+                    self.beta2 = config_dict['training']['beta2']
+                    self.epsilon = config_dict['training']['epsilon']
+                    
+                    # Create to_dict method for saving
+                    def to_dict(self):
+                        return {attr: getattr(self, attr) for attr in dir(self) if not attr.startswith('_') and not callable(getattr(self, attr))}
+                    self.to_dict = to_dict.__get__(self, TrainerConfig)
             
-            self.optimizer = AdamOptimizer(
-                learning_rate=self.config['training']['learning_rate'],
-                beta1=self.config['training']['beta1'],
-                beta2=self.config['training']['beta2'],
-                epsilon=self.config['training']['epsilon']
-            )
+            trainer_config = TrainerConfig(self.config, model_config)
             
             self.trainer = LSTMTrainer(
-                model=self.model,
-                optimizer=self.optimizer,
-                loss_function=self.config['training']['loss_function'],
-                early_stopping_patience=self.config['training']['early_stopping_patience'],
-                checkpoint_dir=self.config['training']['checkpoint_dir']
+                config=trainer_config,
+                logger=self.logger
             )
             
+            # Set references to trainer's model and optimizer for later access
+            self.model = self.trainer.model
+            self.optimizer = self.trainer.optimizer
+            
             # Evaluation and visualization
-            self.evaluator = ModelEvaluator()
+            self.evaluator = MetricsCalculator()
             self.visualizer = Visualizer(
                 output_dir=self.config['visualization']['output_dir']
             )
@@ -132,8 +173,9 @@ class GoldPredictionPipeline:
         try:
             self.logger.info("Fetching gold price data...")
             
-            self.raw_data = self.data_fetcher.fetch_gold_prices(
-                days=self.config['data']['days_to_fetch']
+            self.raw_data = self.data_fetcher.fetch_data(
+                use_cache=True,
+                cache_duration=self.config['data'].get('cache_duration', 3600)
             )
             
             self.logger.info(f"Fetched {len(self.raw_data)} data points")
@@ -150,23 +192,24 @@ class GoldPredictionPipeline:
             if self.raw_data is None:
                 raise ValueError("No raw data available. Please fetch data first.")
             
-            # Preprocess data
-            self.processed_data = self.preprocessor.fit_transform(self.raw_data)
+            # Preprocess data using the actual method available
+            X_sequences, y_sequences, preprocessing_info = self.preprocessor.preprocess_data(self.raw_data)
             
-            # Create sequences and split data
-            sequences, targets = self.preprocessor.create_sequences(
-                self.processed_data['features'],
-                self.processed_data['targets']
-            )
+            # Store processed data
+            self.processed_data = {
+                'features': X_sequences,
+                'targets': y_sequences,
+                'preprocessing_info': preprocessing_info
+            }
             
-            # Split into train/val/test
-            splits = self.preprocessor.train_test_split(sequences, targets)
-            self.train_data = {'X': splits['X_train'], 'y': splits['y_train']}
-            self.val_data = {'X': splits['X_val'], 'y': splits['y_val']}
-            self.test_data = {'X': splits['X_test'], 'y': splits['y_test']}
+            # Split data into train/val/test
+            self._split_data(X_sequences, y_sequences)
             
             # Update model input size based on actual features
-            self.config['model']['input_size'] = self.processed_data['features'].shape[1]
+            if len(X_sequences.shape) == 3:  # (samples, timesteps, features)
+                self.config['model']['input_size'] = X_sequences.shape[2]
+                # Update the model's input size and reinitialize if needed
+                self._update_model_input_size(X_sequences.shape[2])
             
             self.logger.info(f"Data preprocessing completed")
             self.logger.info(f"Training samples: {len(self.train_data['X'])}")
@@ -177,6 +220,87 @@ class GoldPredictionPipeline:
             self.logger.error(f"Error preprocessing data: {str(e)}")
             raise
     
+    def _split_data(self, X_sequences: np.ndarray, y_sequences: np.ndarray) -> None:
+        """
+        Split the preprocessed data into training, validation, and test sets.
+        
+        Args:
+            X_sequences: Input sequences (features)
+            y_sequences: Target sequences (labels)
+        """
+        try:
+            # Get split ratios from config
+            val_split = self.config['training']['validation_split']
+            test_split = self.config['training']['test_split']
+            
+            # Calculate split indices
+            total_samples = len(X_sequences)
+            test_size = int(total_samples * test_split)
+            val_size = int(total_samples * val_split)
+            train_size = total_samples - test_size - val_size
+            
+            self.logger.info(f"Splitting {total_samples} samples into train({train_size}), val({val_size}), test({test_size})")
+            
+            # Split data chronologically (important for time series)
+            # Train: earliest data
+            # Validation: middle data  
+            # Test: most recent data
+            X_train = X_sequences[:train_size]
+            y_train = y_sequences[:train_size]
+            
+            X_val = X_sequences[train_size:train_size + val_size]
+            y_val = y_sequences[train_size:train_size + val_size]
+            
+            X_test = X_sequences[train_size + val_size:]
+            y_test = y_sequences[train_size + val_size:]
+            
+            # Store split data
+            self.train_data = {'X': X_train, 'y': y_train}
+            self.val_data = {'X': X_val, 'y': y_val}
+            self.test_data = {'X': X_test, 'y': y_test}
+            
+            self.logger.info("Data splitting completed successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error splitting data: {str(e)}")
+            raise
+    
+    def _update_model_input_size(self, new_input_size: int) -> None:
+        """
+        Update the model's input size and reinitialize if necessary.
+        
+        Args:
+            new_input_size: The new input size based on actual features
+        """
+        try:
+            # Update trainer config
+            if hasattr(self.trainer, 'config'):
+                self.trainer.config.input_size = new_input_size
+            
+            # Update model config and reinitialize model
+            if hasattr(self.trainer, 'model'):
+                # Update model input size
+                self.trainer.model.input_size = new_input_size
+                
+                # Reinitialize the model with correct input size
+                for layer in self.trainer.model.layers:
+                    if hasattr(layer, 'lstm_cell'):
+                        # Update LSTM cell input size
+                        layer.lstm_cell.input_size = new_input_size
+                        # Reinitialize parameters with correct dimensions
+                        layer.lstm_cell._initialize_parameters()
+                        
+                        self.logger.info(f"Updated LSTM layer input size to {new_input_size}")
+                
+                # Update references
+                self.model = self.trainer.model
+                
+                self.logger.info(f"Model input size updated to {new_input_size}")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating model input size: {str(e)}")
+            raise
+
     def train_model(self) -> Dict[str, Any]:
         """Train the LSTM model."""
         try:
@@ -185,15 +309,19 @@ class GoldPredictionPipeline:
             if self.train_data is None or self.val_data is None:
                 raise ValueError("No training data available. Please preprocess data first.")
             
+            # Combine train and validation data for the trainer
+            # (trainer will split internally based on validation_split)
+            X_combined = np.concatenate([self.train_data['X'], self.val_data['X']], axis=0)
+            y_combined = np.concatenate([self.train_data['y'], self.val_data['y']], axis=0)
+            
+            # Calculate validation split ratio
+            val_split = len(self.val_data['X']) / (len(self.train_data['X']) + len(self.val_data['X']))
+            
             # Train the model
             history = self.trainer.train(
-                X_train=self.train_data['X'],
-                y_train=self.train_data['y'],
-                X_val=self.val_data['X'],
-                y_val=self.val_data['y'],
-                epochs=self.config['training']['epochs'],
-                batch_size=self.config['training']['batch_size'],
-                verbose=True
+                X=X_combined,
+                y=y_combined,
+                validation_split=val_split
             )
             
             self.logger.info("Model training completed successfully")

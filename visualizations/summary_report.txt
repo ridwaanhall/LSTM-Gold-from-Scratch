@@ -1,0 +1,51 @@
+LSTM Gold Price Prediction - Summary Report
+==================================================
+
+Generated on: 2025-06-08 09:36:47
+
+Model Configuration:
+--------------------
+data: {'days_to_fetch': 365, 'cache_dir': 'data/cache', 'max_retries': 3, 'api_timeout': 30, 'api_url': 'https://sahabat.pegadaian.co.id/gold/prices/chart?interval=3650&isRequest=true'}
+model: {'sequence_length': 60, 'input_size': 24, 'hidden_sizes': [32, 16], 'output_size': 1, 'dropout_rate': 0.2, 'activation': 'tanh'}
+training: {'epochs': 10, 'batch_size': 16, 'learning_rate': 0.001, 'validation_split': 0.2, 'test_split': 0.1, 'early_stopping_patience': 5, 'min_delta': 0.0001, 'checkpoint_dir': 'models/checkpoints', 'save_best_only': True, 'beta1': 0.9, 'beta2': 0.999, 'epsilon': 1e-08, 'gradient_clip_norm': 1.0, 'lr_schedule': {'type': 'step', 'step_size': 20, 'gamma': 0.8}, 'loss_function': 'mse'}
+preprocessing: {'normalize_features': True, 'normalize_targets': True, 'normalization_method': 'minmax', 'technical_indicators': {'sma_periods': [10, 20, 50], 'ema_periods': [12, 26], 'rsi_period': 14, 'macd_params': [12, 26, 9], 'bollinger_period': 20, 'bollinger_std': 2}, 'lag_features': [1, 2, 3, 5, 10], 'price_changes': [1, 5, 10, 20], 'volatility_window': 20, 'remove_outliers': True, 'outlier_threshold': 3.0, 'min_data_points': 100}
+evaluation: {'regression_metrics': ['mse', 'rmse', 'mae', 'mape', 'r2'], 'trading_metrics': ['sharpe_ratio', 'max_drawdown', 'win_rate', 'profit_factor'], 'time_series_metrics': ['directional_accuracy', 'uptrend_accuracy', 'downtrend_accuracy'], 'trading_cost': 0.001, 'initial_capital': 10000}
+visualization: {'output_dir': 'visualizations', 'dpi': 300, 'figure_size': [12, 8], 'style': 'darkgrid', 'color_palette': 'husl', 'plots': {'training_history': True, 'predictions': True, 'technical_indicators': True, 'performance_metrics': True, 'feature_importance': True, 'residuals_analysis': True, 'dashboard': True}}
+logging: {'level': 'INFO', 'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s', 'file_handler': {'enabled': True, 'filename': 'logs/lstm_gold.log', 'max_bytes': 10485760, 'backup_count': 5}, 'console_handler': {'enabled': True, 'level': 'INFO'}}
+advanced: {'random_seed': 42, 'num_workers': 4, 'prefetch_factor': 2, 'max_memory_usage': 0.8, 'cache_size': 1000, 'use_attention': False, 'use_bidirectional': False}
+
+Performance Metrics:
+--------------------
+mae: 0.2236
+mse: 0.0612
+rmse: 0.2473
+mape: 30.2338
+smape: 36.3491
+mase: 38.0282
+r2: -2.1601
+explained_variance: 0.4236
+max_error: 0.4923
+directional_accuracy: 52.1875
+strategy_return: 27.8965
+buy_hold_return: 68.9223
+excess_return: -41.0258
+sharpe_ratio: 1.0823
+max_drawdown: -24.8162
+win_rate: 40.0000
+profit_factor: 1.2331
+calmar_ratio: 1.1241
+final_portfolio_value: 12789.6533
+theil_u: 26.4118
+residual_autocorr: 0.9702
+forecast_bias: -0.2236
+tracking_signal: 1.0000
+mean_residual: 0.2236
+std_residual: 0.1056
+
+Training Summary:
+--------------------
+Final Training Loss: 0.0118
+Final Validation Loss: 0.0103
+Best Validation Loss: 0.0103
+Total Epochs: 10
+

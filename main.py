@@ -133,6 +133,8 @@ class GoldPredictionPipeline:
                     # Add missing trainer attributes
                     self.save_model = config_dict['training'].get('save_best_only', True)
                     self.save_frequency = config_dict['training'].get('save_frequency', 10)
+                    self.models_dir = config_dict['training'].get('checkpoint_dir', 'models/checkpoints')
+                    self.model_filename = config_dict['training'].get('model_filename', 'lstm_gold_model.pkl')
                     
                     # Add optimizer parameters
                     self.learning_rate = config_dict['training']['learning_rate']
@@ -282,15 +284,18 @@ class GoldPredictionPipeline:
                 # Update model input size
                 self.trainer.model.input_size = new_input_size
                 
-                # Reinitialize the model with correct input size
-                for layer in self.trainer.model.layers:
+                # Only update the first LSTM layer's input size
+                # Subsequent layers should maintain their hidden_size as input_size
+                for i, layer in enumerate(self.trainer.model.layers):
                     if hasattr(layer, 'lstm_cell'):
-                        # Update LSTM cell input size
-                        layer.lstm_cell.input_size = new_input_size
-                        # Reinitialize parameters with correct dimensions
-                        layer.lstm_cell._initialize_parameters()
-                        
-                        self.logger.info(f"Updated LSTM layer input size to {new_input_size}")
+                        if i == 0:  # Only first layer gets the new input size
+                            # Update LSTM cell input size
+                            layer.lstm_cell.input_size = new_input_size
+                            # Reinitialize parameters with correct dimensions
+                            layer.lstm_cell._initialize_parameters()
+                            
+                            self.logger.info(f"Updated first LSTM layer input size to {new_input_size}")
+                        # Other layers keep their input size unchanged (hidden_size from previous layer)
                 
                 # Update references
                 self.model = self.trainer.model

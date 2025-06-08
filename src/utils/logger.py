@@ -150,7 +150,7 @@ class LSTMLogger:
     def log_error_with_traceback(self, message: str, exception: Exception):
         """Log error with full traceback."""
         self.error(f"{message}: {str(exception)}")
-        self.error("Traceback:", exc_info=True)
+        self.logger.error("Traceback:", exc_info=True)
 
 
 # Create default logger instance

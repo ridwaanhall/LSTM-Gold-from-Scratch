@@ -350,9 +350,15 @@ class GoldPredictionPipeline:
             # Make predictions on test set
             predictions = self.model.predict(self.test_data['X'])
             
-            # Inverse transform predictions and targets
-            actual = self.preprocessor.inverse_transform_targets(self.test_data['y'])
-            predicted = self.preprocessor.inverse_transform_targets(predictions)
+            # Inverse transform predictions and targets if preprocessing info is available
+            if self.processed_data and 'preprocessing_info' in self.processed_data:
+                scaler_info = self.processed_data['preprocessing_info']
+                actual = self.preprocessor.inverse_transform_predictions(self.test_data['y'], scaler_info)
+                predicted = self.preprocessor.inverse_transform_predictions(predictions, scaler_info)
+            else:
+                # Use raw values if no preprocessing info available
+                actual = self.test_data['y']
+                predicted = predictions
             
             # Calculate metrics
             regression_metrics = self.evaluator.calculate_regression_metrics(actual, predicted)

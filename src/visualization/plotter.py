@@ -4,8 +4,8 @@ LSTM Gold Price Prediction - Visualization Module
 This module provides comprehensive plotting and visualization capabilities
 for the LSTM gold price prediction project.
 
-Author: GitHub Copilot
-Date: 2024
+Author: Ridwan Halim (ridwaanhall)
+Date: 2025
 """
 
 import numpy as np

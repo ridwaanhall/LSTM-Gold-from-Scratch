@@ -9,8 +9,8 @@ evaluation, and visualization.
 Usage:
     python main.py [--config config.yaml] [--mode train|predict|evaluate]
 
-Author: GitHub Copilot
-Date: 2024
+Author: Ridwan Halim (ridwaanhall)
+Date: 2025
 """
 
 import argparse

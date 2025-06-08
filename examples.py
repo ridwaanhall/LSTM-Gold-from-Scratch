@@ -5,8 +5,8 @@ LSTM Gold Price Prediction - Usage Examples
 This script demonstrates various ways to use the LSTM gold price prediction system.
 It shows different execution modes and configuration options.
 
-Author: GitHub Copilot
-Date: 2024
+Author: Ridwan Halim (ridwaanhall)
+Date: 2025
 """
 
 import os

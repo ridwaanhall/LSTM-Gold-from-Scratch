@@ -5,8 +5,8 @@ LSTM Gold Price Prediction - Demo Script
 A simplified demo script to showcase the LSTM gold price prediction system.
 This script runs a quick demo with reduced data and epochs for testing purposes.
 
-Author: GitHub Copilot
-Date: 2024
+Author: Ridwan Halim (ridwaanhall)
+Date: 2025
 """
 
 import sys

@@ -407,7 +407,7 @@ class GoldPredictionPipeline:
             
             # Inverse transform predictions and targets if preprocessing info is available
             if self.processed_data and 'preprocessing_info' in self.processed_data:
-                scaler_info = self.processed_data['preprocessing_info']
+                scaler_info = self.processed_data['preprocessing_info']['scaler_info']
                 actual = self.preprocessor.inverse_transform_predictions(self.test_data['y'], scaler_info)
                 predicted = self.preprocessor.inverse_transform_predictions(predictions, scaler_info)
             else:
@@ -584,7 +584,7 @@ class GoldPredictionPipeline:
             self.logger.debug(f"Predictions array shape before inverse transform: {predictions.shape}")
             
             if self.processed_data and 'preprocessing_info' in self.processed_data:
-                scaler_info = self.processed_data['preprocessing_info']
+                scaler_info = self.processed_data['preprocessing_info']['scaler_info']
                 predictions = self.preprocessor.inverse_transform_predictions(predictions, scaler_info)
                 self.logger.debug(f"Predictions shape after inverse transform: {predictions.shape}")
             else:

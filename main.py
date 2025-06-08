@@ -37,6 +37,45 @@ from src.evaluation.metrics import MetricsCalculator
 from src.visualization.plotter import Visualizer
 
 
+# Config wrapper classes for bridging dict-based config with object-based components
+class DataConfig:
+    """Data configuration wrapper."""
+    def __init__(self, config_dict):
+        self.days_to_fetch = config_dict.get('days_to_fetch', 365)
+        self.api_base_url = config_dict.get('api_base_url', 'https://api.logam.id')
+        self.cache_enabled = config_dict.get('cache_enabled', True)
+        self.cache_expiry_hours = config_dict.get('cache_expiry_hours', 24)
+
+
+class ModelConfig:
+    """Model configuration wrapper."""
+    def __init__(self, config_dict):
+        self.input_size = config_dict.get('input_size', 24)
+        self.hidden_size = config_dict.get('hidden_size', 64)
+        self.num_layers = config_dict.get('num_layers', 2)
+        self.output_size = config_dict.get('output_size', 1)
+        self.dropout_rate = config_dict.get('dropout_rate', 0.2)
+        self.hidden_sizes = config_dict.get('hidden_sizes', [64, 32])
+
+
+class TrainerConfig:
+    """Trainer configuration wrapper."""
+    def __init__(self, config_dict):
+        self.epochs = config_dict.get('epochs', 100)
+        self.batch_size = config_dict.get('batch_size', 32)
+        self.learning_rate = config_dict.get('learning_rate', 0.001)
+        self.early_stopping_patience = config_dict.get('early_stopping_patience', 10)
+        self.lr_decay_factor = config_dict.get('lr_decay_factor', 0.95)
+        self.lr_decay_patience = config_dict.get('lr_decay_patience', 5)
+        self.validation_split = config_dict.get('validation_split', 0.2)
+        self.shuffle = config_dict.get('shuffle', True)
+        self.verbose = config_dict.get('verbose', True)
+        self.save_model = config_dict.get('save_model', True)
+        self.save_frequency = config_dict.get('save_frequency', 10)
+        self.models_dir = config_dict.get('models_dir', 'models')
+        self.model_filename = config_dict.get('model_filename', 'lstm_gold_model.pkl')
+
+
 class GoldPredictionPipeline:
     """
     Main pipeline class for LSTM gold price prediction.
@@ -80,28 +119,15 @@ class GoldPredictionPipeline:
     def setup_components(self) -> None:
         """Initialize all pipeline components."""
         try:
-            # Create config objects for components
-            class DataConfig:
-                def __init__(self, config_dict):
-                    self.api_url = config_dict['data']['api_url']
-                    self.data_dir = config_dict['data']['cache_dir']
-                    self.sequence_length = config_dict['model']['sequence_length']
-                    # Ensure directory exists
-                    os.makedirs(self.data_dir, exist_ok=True)
+            # Create config objects using module-level classes
+            data_config = DataConfig(self.config['data'])
+            model_config = ModelConfig(self.config['model'])
+            trainer_config = TrainerConfig(self.config['training'])
             
-            class ModelConfig:
-                def __init__(self, config_dict):
-                    self.input_size = config_dict['model']['input_size']
-                    # For now, use first hidden size and count layers
-                    hidden_sizes = config_dict['model']['hidden_sizes']
-                    self.hidden_size = hidden_sizes[0] if hidden_sizes else 64
-                    self.num_layers = len(hidden_sizes) if hidden_sizes else 1
-                    self.output_size = config_dict['model']['output_size']
-                    self.dropout_rate = config_dict['model']['dropout_rate']
-                    self.gradient_clip = config_dict['training'].get('gradient_clip_norm', 1.0)
-            
-            data_config = DataConfig(self.config)
-            model_config = ModelConfig(self.config)
+            # Ensure directories exist
+            os.makedirs(self.config['data']['cache_dir'], exist_ok=True)
+            os.makedirs(self.config['training']['checkpoint_dir'], exist_ok=True)
+            os.makedirs(self.config['visualization']['output_dir'], exist_ok=True)
             
             # Data components
             self.data_fetcher = GoldDataFetcher(
@@ -114,40 +140,21 @@ class GoldPredictionPipeline:
                 logger=self.logger
             )
             
-            # Create a combined config for trainer
-            class TrainerConfig:
-                def __init__(self, config_dict, model_config):
-                    # Copy model config attributes
-                    for attr in ['input_size', 'hidden_size', 'num_layers', 'output_size', 'dropout_rate', 'gradient_clip']:
-                        setattr(self, attr, getattr(model_config, attr))
-                    
-                    # Add trainer-specific config
-                    self.epochs = config_dict['training']['epochs']
-                    self.batch_size = config_dict['training']['batch_size']
-                    self.loss_function = config_dict['training']['loss_function']
-                    self.patience = config_dict['training']['early_stopping_patience']
-                    self.min_delta = config_dict['training']['min_delta']
-                    self.checkpoint_dir = config_dict['training']['checkpoint_dir']
-                    self.save_best_only = config_dict['training']['save_best_only']
-                    
-                    # Add missing trainer attributes
-                    self.save_model = config_dict['training'].get('save_best_only', True)
-                    self.save_frequency = config_dict['training'].get('save_frequency', 10)
-                    self.models_dir = config_dict['training'].get('checkpoint_dir', 'models/checkpoints')
-                    self.model_filename = config_dict['training'].get('model_filename', 'lstm_gold_model.pkl')
-                    
-                    # Add optimizer parameters
-                    self.learning_rate = config_dict['training']['learning_rate']
-                    self.beta1 = config_dict['training']['beta1']
-                    self.beta2 = config_dict['training']['beta2']
-                    self.epsilon = config_dict['training']['epsilon']
-                    
-                    # Create to_dict method for saving
-                    def to_dict(self):
-                        return {attr: getattr(self, attr) for attr in dir(self) if not attr.startswith('_') and not callable(getattr(self, attr))}
-                    self.to_dict = to_dict.__get__(self, TrainerConfig)
-            
-            trainer_config = TrainerConfig(self.config, model_config)
+            # Training components - extend trainer config with model config
+            trainer_config.input_size = model_config.input_size
+            trainer_config.hidden_size = model_config.hidden_size
+            trainer_config.num_layers = model_config.num_layers
+            trainer_config.output_size = model_config.output_size
+            trainer_config.dropout_rate = model_config.dropout_rate
+            trainer_config.gradient_clip = self.config['training'].get('gradient_clip_norm', 1.0)
+            trainer_config.loss_function = self.config['training']['loss_function']
+            trainer_config.patience = self.config['training']['early_stopping_patience']
+            trainer_config.min_delta = self.config['training']['min_delta']
+            trainer_config.checkpoint_dir = self.config['training']['checkpoint_dir']
+            trainer_config.save_best_only = self.config['training']['save_best_only']
+            trainer_config.beta1 = self.config['training']['beta1']
+            trainer_config.beta2 = self.config['training']['beta2']
+            trainer_config.epsilon = self.config['training']['epsilon']
             
             self.trainer = LSTMTrainer(
                 config=trainer_config,
@@ -350,6 +357,10 @@ class GoldPredictionPipeline:
             # Make predictions on test set
             predictions = self.model.predict(self.test_data['X'])
             
+            # Ensure predictions are properly shaped
+            if predictions.ndim > 1 and predictions.shape[1] == 1:
+                predictions = predictions.flatten()
+            
             # Inverse transform predictions and targets if preprocessing info is available
             if self.processed_data and 'preprocessing_info' in self.processed_data:
                 scaler_info = self.processed_data['preprocessing_info']
@@ -359,6 +370,24 @@ class GoldPredictionPipeline:
                 # Use raw values if no preprocessing info available
                 actual = self.test_data['y']
                 predicted = predictions
+            
+            # Ensure both arrays have the same shape
+            if actual.ndim > 1 and actual.shape[1] == 1:
+                actual = actual.flatten()
+            if predicted.ndim > 1 and predicted.shape[1] == 1:
+                predicted = predicted.flatten()
+            
+            # Debug logging for array shapes
+            self.logger.debug(f"Actual shape: {actual.shape}, Predicted shape: {predicted.shape}")
+            
+            # Final shape validation
+            if actual.shape != predicted.shape:
+                self.logger.warning(f"Shape mismatch detected: actual={actual.shape}, predicted={predicted.shape}")
+                # Truncate to match the smaller array
+                min_len = min(len(actual), len(predicted))
+                actual = actual[:min_len]
+                predicted = predicted[:min_len]
+                self.logger.info(f"Arrays truncated to length {min_len}")
             
             # Calculate metrics
             regression_metrics = self.evaluator.calculate_regression_metrics(actual, predicted)

@@ -48,6 +48,18 @@ class DataConfig:
         self.cache_expiry_hours = config_dict.get('cache_expiry_hours', 24)
         self.max_retries = config_dict.get('max_retries', 3)
         self.api_timeout = config_dict.get('api_timeout', 30)
+    
+    def to_dict(self):
+        """Convert config to dictionary."""
+        return {
+            'days_to_fetch': self.days_to_fetch,
+            'api_url': self.api_url,
+            'data_dir': self.data_dir,
+            'cache_enabled': self.cache_enabled,
+            'cache_expiry_hours': self.cache_expiry_hours,
+            'max_retries': self.max_retries,
+            'api_timeout': self.api_timeout
+        }
 
 
 class ModelConfig:
@@ -59,6 +71,17 @@ class ModelConfig:
         self.output_size = config_dict.get('output_size', 1)
         self.dropout_rate = config_dict.get('dropout_rate', 0.2)
         self.hidden_sizes = config_dict.get('hidden_sizes', [64, 32])
+    
+    def to_dict(self):
+        """Convert config to dictionary."""
+        return {
+            'input_size': self.input_size,
+            'hidden_size': self.hidden_size,
+            'num_layers': self.num_layers,
+            'output_size': self.output_size,
+            'dropout_rate': self.dropout_rate,
+            'hidden_sizes': self.hidden_sizes
+        }
 
 
 class TrainerConfig:
@@ -77,6 +100,24 @@ class TrainerConfig:
         self.save_frequency = config_dict.get('save_frequency', 10)
         self.models_dir = config_dict.get('models_dir', 'models')
         self.model_filename = config_dict.get('model_filename', 'lstm_gold_model.pkl')
+    
+    def to_dict(self):
+        """Convert config to dictionary."""
+        return {
+            'epochs': self.epochs,
+            'batch_size': self.batch_size,
+            'learning_rate': self.learning_rate,
+            'early_stopping_patience': self.early_stopping_patience,
+            'lr_decay_factor': self.lr_decay_factor,
+            'lr_decay_patience': self.lr_decay_patience,
+            'validation_split': self.validation_split,
+            'shuffle': self.shuffle,
+            'verbose': self.verbose,
+            'save_model': self.save_model,
+            'save_frequency': self.save_frequency,
+            'models_dir': self.models_dir,
+            'model_filename': self.model_filename
+        }
 
 
 class GoldPredictionPipeline:

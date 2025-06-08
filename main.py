@@ -553,16 +553,25 @@ class GoldPredictionPipeline:
             if self.model is None or self.preprocessor is None:
                 raise ValueError("No trained model available. Please train or load a model first.")
             
+            # Debug: Check processed_data structure
+            self.logger.debug(f"Processed data keys: {list(self.processed_data.keys()) if self.processed_data else 'None'}")
+            
             # Get the last sequence from processed data
-            last_sequence = self.processed_data['features'][-self.config['model']['sequence_length']:]
+            features = self.processed_data['features']
+            sequence_length = self.config['model']['sequence_length']
+            self.logger.debug(f"Features shape: {features.shape}, sequence_length: {sequence_length}")
+            
+            last_sequence = features[-sequence_length:]
             last_sequence = last_sequence.reshape(1, *last_sequence.shape)
+            self.logger.debug(f"Last sequence shape: {last_sequence.shape}")
             
             predictions = []
             current_sequence = last_sequence.copy()
             
-            for _ in range(days):
+            for i in range(days):
                 # Predict next value
                 pred = self.model.predict(current_sequence)
+                self.logger.debug(f"Prediction {i} shape: {pred.shape}, value: {pred[0, 0] if pred.size > 0 else 'empty'}")
                 predictions.append(pred[0, 0])
                 
                 # Update sequence for next prediction (simplified approach)
@@ -572,10 +581,28 @@ class GoldPredictionPipeline:
             
             # Inverse transform predictions
             predictions = np.array(predictions).reshape(-1, 1)
-            predictions = self.preprocessor.inverse_transform_targets(predictions)
+            self.logger.debug(f"Predictions array shape before inverse transform: {predictions.shape}")
+            
+            if self.processed_data and 'preprocessing_info' in self.processed_data:
+                scaler_info = self.processed_data['preprocessing_info']
+                predictions = self.preprocessor.inverse_transform_predictions(predictions, scaler_info)
+                self.logger.debug(f"Predictions shape after inverse transform: {predictions.shape}")
+            else:
+                predictions = predictions.flatten()
+                self.logger.debug(f"Predictions shape after flatten: {predictions.shape}")
             
             # Generate future dates
-            last_date = self.raw_data.index[-1] if hasattr(self.raw_data, 'index') else datetime.now()
+            if isinstance(self.raw_data, list) and len(self.raw_data) > 0:
+                # Extract date from last record
+                last_record = self.raw_data[-1]
+                last_date_str = last_record.get('date', last_record.get('timestamp', ''))
+                try:
+                    last_date = datetime.strptime(last_date_str, '%Y-%m-%d')
+                except:
+                    last_date = datetime.now()
+            else:
+                last_date = datetime.now()
+            
             future_dates = [last_date + timedelta(days=i+1) for i in range(days)]
             
             self.logger.info(f"Future predictions completed")

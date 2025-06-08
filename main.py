@@ -42,9 +42,12 @@ class DataConfig:
     """Data configuration wrapper."""
     def __init__(self, config_dict):
         self.days_to_fetch = config_dict.get('days_to_fetch', 365)
-        self.api_base_url = config_dict.get('api_base_url', 'https://api.logam.id')
+        self.api_url = config_dict.get('api_url', 'https://sahabat.pegadaian.co.id/gold/prices/chart?interval=3650&isRequest=true')
+        self.data_dir = config_dict.get('cache_dir', 'data/cache')
         self.cache_enabled = config_dict.get('cache_enabled', True)
         self.cache_expiry_hours = config_dict.get('cache_expiry_hours', 24)
+        self.max_retries = config_dict.get('max_retries', 3)
+        self.api_timeout = config_dict.get('api_timeout', 30)
 
 
 class ModelConfig:

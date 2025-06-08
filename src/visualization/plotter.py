@@ -141,6 +141,18 @@ class Visualizer:
             save_path: Path to save the plot
         """
         try:
+            # Ensure arrays are properly shaped
+            actual = np.asarray(actual).flatten()
+            predicted = np.asarray(predicted).flatten()
+            
+            # Validate array shapes
+            if actual.shape != predicted.shape:
+                self.logger.warning(f"Shape mismatch in plot_predictions: actual={actual.shape}, predicted={predicted.shape}")
+                min_len = min(len(actual), len(predicted))
+                actual = actual[:min_len]
+                predicted = predicted[:min_len]
+                self.logger.info(f"Arrays truncated to length {min_len} for plotting")
+            
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10))
             fig.suptitle(title, fontsize=16, fontweight='bold')
             
